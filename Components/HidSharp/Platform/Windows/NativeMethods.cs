@@ -187,7 +187,7 @@ namespace HidSharp.Platform.Windows
         public struct SP_DEVICE_INTERFACE_DETAIL_DATA
         {
             public int Size;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=1024)] public string DevicePath;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)] public string DevicePath;
         }
 
         public struct HIDD_ATTRIBUTES
@@ -262,11 +262,11 @@ namespace HidSharp.Platform.Windows
                 bytesTransferred = 0;
             }
         }
-        
+
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetVersionEx(ref OSVERSIONINFO version);
-         
+
         [DllImport("hid.dll")]
         public static extern void HidD_GetHidGuid(out Guid hidGuid);
 
@@ -348,12 +348,12 @@ namespace HidSharp.Platform.Windows
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr handle);
 
-		public static bool CloseHandle(ref IntPtr handle)
-		{
-			if (!CloseHandle(handle)) { return false; }
-			handle = IntPtr.Zero; return true;
-		}
-		
+        public static bool CloseHandle(ref IntPtr handle)
+        {
+            if (!CloseHandle(handle)) { return false; }
+            handle = IntPtr.Zero; return true;
+        }
+
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public unsafe static extern bool ReadFile(IntPtr handle, byte* buffer, int bytesToRead,
