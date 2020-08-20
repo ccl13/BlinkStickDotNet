@@ -1,53 +1,26 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{7AAEBEBE-E38D-47B1-A04C-A055DCEB0757}</ProjectGuid>
+    <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
-    <RootNamespace>BlinkStickDotNet</RootNamespace>
-    <AssemblyName>BlinkStickDotNet</AssemblyName>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>BlinkStickDotNet.snk</AssemblyOriginatorKeyFile>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <TargetFrameworkProfile />
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
     <DefineConstants>DEBUG;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Core" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="UsbMonitor.cs" />
-    <Compile Include="WinUsbDeviceMonitor.cs" />
-    <Compile Include="RgbColor.cs" />
-    <Compile Include="HSLColor.cs" />
-    <Compile Include="BlinkStick.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
@@ -59,13 +32,7 @@
     </MonoDevelop>
   </ProjectExtensions>
   <ItemGroup>
-    <ProjectReference Include="..\Components\HidSharp\HidSharp.csproj">
-      <Project>{0DB86674-2A7B-4BDC-93C1-3F7DC771426C}</Project>
-      <Name>HidSharp</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Components\LibWinUsb\LibUsbDotNet.csproj">
-      <Project>{0A78F6FF-5586-4052-8104-E23FF83A7CE1}</Project>
-      <Name>LibUsbDotNet</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\Components\HidSharp\HidSharp.csproj" />
+    <ProjectReference Include="..\Components\LibWinUsb\LibUsbDotNet.csproj" />
   </ItemGroup>
 </Project>
