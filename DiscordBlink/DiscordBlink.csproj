@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Discord.Net" Version="2.2.0" />
+    <PackageReference Include="DiscordRichPresence" Version="1.0.150" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BlinkStickDotNet\BlinkStickDotNet.csproj" />
     <ProjectReference Include="..\Components\HidSharp\HidSharp.csproj" />
     <ProjectReference Include="..\Components\LibWinUsb\LibUsbDotNet.csproj" />

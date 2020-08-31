@@ -22,6 +22,8 @@ namespace DiscordBlink
         public const string RedirectUrl = "https://localhost:62315/";
 
         public static string ClientKey = null;
+        public static string CurrentClientToken = null;
+        public static DateTime? CurrentTokenTTL = null;
 
         public static void WaitAfterCancel()
         {
@@ -62,6 +64,22 @@ namespace DiscordBlink
                     }
                 }
             }
+
+        }
+
+        static void GrabClient()
+        {
+            while (string.IsNullOrWhiteSpace(CurrentClientToken))
+            {
+                Thread.Sleep(500);
+            }
+
+            var client = new DiscordRPC.DiscordRpcClient(ClientId);
+
+            client.OnReady += (sender, e) =>
+            {
+                Console.WriteLine("Received Ready from user {0}", e.User.Username);
+            };
 
         }
 
