@@ -4,10 +4,20 @@ using System.Threading;
 
 namespace BlinkStripControl
 {
-    class Program
+    class BlinkTestMain
     {
+
+        public static void WaitAfterCancel()
+        {
+        }
+
+
         static void Main(string[] args)
         {
+            var cancelHelper = new CancellableShellHelper();
+            cancelHelper.SetupCancelHandler();
+            cancelHelper.WaitAfterCancel = WaitAfterCancel;
+
             Console.WriteLine("Set random color.\r\n");
 
             BlinkStick[] devices = BlinkStick.FindAll();
