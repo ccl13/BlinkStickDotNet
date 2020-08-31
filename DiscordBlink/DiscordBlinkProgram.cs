@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using BlinkStickDotNet;
+using DiscordBlink.Helper;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -13,14 +15,17 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordBlink
 {
-    public class Program
+    public class DiscordBlinkProgram
     {
+        public const string ClientId = "749339229422878810";
+        public const string ClientKeyEncrypted = @"Zcz9i/i7W0qNYavXvp0G8206c5M1vvdWyFBSLIBO0CJYO1P91NsM2P2nK1q+Exlf";
+        public const string RedirectUrl = "https://localhost:62315/";
+
+        public static string ClientKey = null;
 
         public static void WaitAfterCancel()
         {
         }
-
-
 
         static void Blink(string[] args)
         {
@@ -62,6 +67,10 @@ namespace DiscordBlink
 
         public static void Main(string[] args)
         {
+            Console.WriteLine("Type in key:");
+            var key = Console.ReadLine();
+            ClientKey = AESHelper.DecryptStringFromBase64_Aes(ClientKeyEncrypted, key, null);
+
             var cancelHelper = new CancellableShellHelper();
             cancelHelper.SetupCancelHandler();
             cancelHelper.WaitAfterCancel = WaitAfterCancel;
@@ -70,18 +79,19 @@ namespace DiscordBlink
             IWebHost webHost = hostBuilder.Build();
             var hostTask = webHost.RunAsync();
 
-            var firstBinding = webHost
-                .ServerFeatures
-                .Get<IServerAddressesFeature>()
-                .Addresses
-                .First();
-
             var blinkTask = Task.Run(() => Blink(args));
 
             var runningTasks = new[] {
                 hostTask,
                 blinkTask,
             };
+
+            {
+                var myProcess = new System.Diagnostics.Process();
+                myProcess.StartInfo.UseShellExecute = true;
+                myProcess.StartInfo.FileName = RedirectUrl;
+                myProcess.Start();
+            }
 
             Task.WaitAll(runningTasks, cancelHelper.CancellationToken);
         }
@@ -100,7 +110,8 @@ namespace DiscordBlink
         {
             return WebHost
                 .CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+                .UseStartup<Startup>()
+                .UseUrls(RedirectUrl);
         }
     }
 }
