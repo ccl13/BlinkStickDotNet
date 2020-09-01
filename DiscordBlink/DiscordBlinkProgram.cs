@@ -75,6 +75,7 @@ namespace DiscordBlink
         public static CancellableShellHelper CancellableShellHelper = new CancellableShellHelper();
 
         public static BlinkStick[] BlinkDevices = null;
+        public const byte NumberOfBlinkLights = 8;
 
         public static bool? LastIsMuted = null;
         public static bool? DoneSetLastIsMuted = null;
@@ -102,9 +103,7 @@ namespace DiscordBlink
                     device.SetMode(0);
                     await Task.Delay(1);
 
-                    int numberOfLeds = 8;
-
-                    for (byte i = 0; i < numberOfLeds; i++)
+                    for (byte i = 1; i <= NumberOfBlinkLights; i++)
                     {
                         device.SetColor(0, i, 0, 0, 0);
                         await Task.Delay(1);
@@ -236,9 +235,33 @@ namespace DiscordBlink
             }
         }
 
+        public static void GracefulShutdown()
+        {
+            if (BlinkDevices == null || BlinkDevices.Length <= 0)
+            {
+                return;
+            }
+
+            // Iterate through all of them
+            foreach (BlinkStick device in BlinkDevices)
+            {
+                //Open the device
+                if (device.OpenDevice())
+                {
+                    for (byte i = 1; i <= NumberOfBlinkLights; i++)
+                    {
+                        device.SetColor(0, i, 0, 0, 0);
+                        Thread.Sleep(1);
+                    }
+                }
+            }
+
+        }
+
         public static void Main(string[] args)
         {
             CancellableShellHelper.SetupCancelHandler();
+            CancellableShellHelper.WaitAfterCancel = GracefulShutdown;
 
             var hostTask = KickOffHosting(args);
             var blinkTask = BlinkSetup();
