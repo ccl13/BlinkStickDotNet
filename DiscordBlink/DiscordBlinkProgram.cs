@@ -273,7 +273,18 @@ namespace DiscordBlink
                 rpcTask,
             };
 
-            Task.WaitAll(runningTasks, CancellableShellHelper.CancellationToken);
+            try
+            {
+                Task.WaitAll(runningTasks, CancellableShellHelper.CancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Intentionally swallowed
+            }
+            finally
+            {
+                Task.Delay(500).Wait();
+            }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
