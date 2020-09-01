@@ -19,7 +19,7 @@ namespace DiscordBlink
 
         public const string ClientId = "749339229422878810";
         public const string ClientKeyEncrypted = @"Zcz9i/i7W0qNYavXvp0G8206c5M1vvdWyFBSLIBO0CJYO1P91NsM2P2nK1q+Exlf";
-        public const string RedirectUrl = "https://localhost:62315/";
+        public const string RedirectUrl = "http://localhost:62315/";
 
         public static string ClientKey = null;
 
@@ -211,23 +211,29 @@ namespace DiscordBlink
 
         public static async Task KickOffHosting(string[] args)
         {
-            Console.WriteLine("Type in key:");
-            var key = Console.ReadLine();
-            ClientKey = AESHelper.DecryptStringFromBase64_Aes(ClientKeyEncrypted, key, null);
-
-            var hostBuilder = CreateWebHostBuilder(args);
-            IWebHost webHost = hostBuilder.Build();
-            var task = webHost.RunAsync(CancellableShellHelper.CancellationToken);
-
-            if (string.IsNullOrWhiteSpace(CurrentClientToken) || DateTime.Now > CurrentTokenTTL)
+            try
             {
-                var myProcess = new System.Diagnostics.Process();
-                myProcess.StartInfo.UseShellExecute = true;
-                myProcess.StartInfo.FileName = RedirectUrl;
-                myProcess.Start();
-            }
+                var hostBuilder = CreateWebHostBuilder(args);
+                IWebHost webHost = hostBuilder.Build();
+                var task = webHost.RunAsync(CancellableShellHelper.CancellationToken);
 
-            await task;
+                Console.WriteLine("Type in key:");
+                var key = Console.ReadLine();
+                ClientKey = AESHelper.DecryptStringFromBase64_Aes(ClientKeyEncrypted, key, null);
+
+                if (string.IsNullOrWhiteSpace(CurrentClientToken) || DateTime.Now > CurrentTokenTTL)
+                {
+                    var myProcess = new System.Diagnostics.Process();
+                    myProcess.StartInfo.UseShellExecute = true;
+                    myProcess.StartInfo.FileName = RedirectUrl;
+                    myProcess.Start();
+                }
+                await task;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         public static void Main(string[] args)
