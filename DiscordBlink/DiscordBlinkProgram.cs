@@ -130,12 +130,12 @@ namespace DiscordBlink
                     {
                         if (LastIsMuted.Value && (!DoneSetLastIsMuted.HasValue || !DoneSetLastIsMuted.Value))
                         {
-                            device.Morph(0, 1, 32, 0, 0, 100);
+                            device.Morph(0, 1, 32, 0, 0, 100, 10);
                             DoneSetLastIsMuted = true;
                         }
                         else if (!LastIsMuted.Value && (!DoneSetLastIsMuted.HasValue || DoneSetLastIsMuted.Value))
                         {
-                            device.Morph(0, 1, 0, 0, 32, 100);
+                            device.Morph(0, 1, 0, 0, 32, 100, 10);
                             DoneSetLastIsMuted = false;
                         }
                         Task.Delay(1, CancellableShellHelper.CancellationToken).Wait();
