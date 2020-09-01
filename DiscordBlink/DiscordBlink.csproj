@@ -16,11 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="2.2.0" />
-    <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\BlinkStickDotNet\BlinkStickDotNet.csproj" />
     <ProjectReference Include="..\Components\HidSharp\HidSharp.csproj" />
     <ProjectReference Include="..\Components\LibWinUsb\LibUsbDotNet.csproj" />
