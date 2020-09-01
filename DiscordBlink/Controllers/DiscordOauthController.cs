@@ -20,8 +20,7 @@ namespace DiscordBlink.Controllers
 
         public RedirectResult AuthRedirect()
         {
-            var a = this.Request;
-            return new RedirectResult($"https://discord.com/api/oauth2/authorize?client_id={DiscordBlinkProgram.ClientId}&redirect_uri={DiscordBlinkProgram.RedirectUrl}&response_type=code&scope=rpc", false);
+            return new RedirectResult($"https://discord.com/api/oauth2/authorize?client_id={DiscordBlinkProgram.ClientId}&redirect_uri={DiscordBlinkProgram.RedirectUrl}&response_type=code&scope={string.Join(" ", DiscordBlinkProgram.DefaultScopes)}", false);
         }
 
         [HttpGet]
@@ -40,7 +39,7 @@ namespace DiscordBlink.Controllers
                     { "grant_type", "client_credentials" },
                     { "code", code },
                     { "redirect_uri", DiscordBlinkProgram.RedirectUrl },
-                    { "scope", "rpc" },
+                    { "scope", string.Join(" ", DiscordBlinkProgram.DefaultScopes) },
                 };
 
             using (var httpClient = new HttpClient())
@@ -53,12 +52,12 @@ namespace DiscordBlink.Controllers
                     HttpResponseMessage response = await httpClient.PostAsync("https://discord.com/api/oauth2/token", content);
 
                     var responseJson = await response.Content.ReadAsStringAsync();
-                    var json = JsonSerializer.Deserialize<Dictionary<string, object>>(responseJson);
-                    var access_token = json["access_token"] as string;
-                    var ttl = json["expires_in"] as int?;
+                    var json = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(responseJson);
+                    var access_token = json["access_token"].GetString();
+                    var ttl = json["expires_in"].GetInt32();
 
                     DiscordBlinkProgram.CurrentClientToken = access_token;
-                    DiscordBlinkProgram.CurrentTokenTTL = ttl.HasValue ? (DateTime?)DateTime.Now.AddSeconds(ttl.Value - 5) : null;
+                    DiscordBlinkProgram.CurrentTokenTTL = (DateTime?)DateTime.Now.AddSeconds(ttl - 5);
                 }
             }
 

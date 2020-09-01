@@ -12,12 +12,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Discord.Net\Discord.Net\src\Discord.Net.WebSocket\Net\DefaultWebSocketClient.cs" Link="Helper\DefaultWebSocketClient.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Discord\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="2.2.0" />
     <PackageReference Include="DiscordRichPresence" Version="1.0.150" />
+    <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
   </ItemGroup>
 
   <ItemGroup>
