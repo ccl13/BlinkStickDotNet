@@ -1,29 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.IO.Pipes;
-using System.Linq;
-using System.Net.Http;
-using System.Net.WebSockets;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using BlinkStickDotNet;
-using Discord.Commands;
-using Discord.WebSocket;
 using DiscordBlink.Helper;
 using DiscordRPC;
 using DiscordRPC.Logging;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace DiscordBlink
 {
@@ -38,6 +22,7 @@ namespace DiscordBlink
         public const string RedirectUrl = "https://localhost:62315/";
 
         public static string ClientKey = null;
+
         public static string CurrentClientToken
         {
             get
@@ -49,6 +34,7 @@ namespace DiscordBlink
                 System.Environment.SetEnvironmentVariable(TokenVariableName, value, EnvironmentVariableTarget.User);
             }
         }
+
         public static DateTime? CurrentTokenTTL
         {
             get
@@ -86,24 +72,27 @@ namespace DiscordBlink
             //"rpc.api",
         };
 
-        public static void WaitAfterCancel()
-        {
-        }
+        public static CancellableShellHelper CancellableShellHelper = new CancellableShellHelper();
 
-        static void Blink(string[] args)
+        public static BlinkStick[] BlinkDevices = null;
+
+        public static bool? LastIsMuted = null;
+        public static bool? DoneSetLastIsMuted = null;
+
+        static async Task BlinkSetup()
         {
             Console.WriteLine("Set random color.\r\n");
 
-            BlinkStick[] devices = BlinkStick.FindAll();
+            var blinkDevices = BlinkStick.FindAll();
 
-            if (devices.Length == 0)
+            if (blinkDevices.Length == 0)
             {
                 Console.WriteLine("Could not find any BlinkStick devices...");
                 return;
             }
 
-            //Iterate through all of them
-            foreach (BlinkStick device in devices)
+            // Iterate through all of them
+            foreach (BlinkStick device in blinkDevices)
             {
                 //Open the device
                 if (device.OpenDevice())
@@ -111,74 +100,64 @@ namespace DiscordBlink
                     Console.WriteLine(string.Format("Device {0} opened successfully", device.Serial));
 
                     device.SetMode(0);
-                    Thread.Sleep(1);
+                    await Task.Delay(1);
 
                     int numberOfLeds = 8;
 
                     for (byte i = 0; i < numberOfLeds; i++)
                     {
                         device.SetColor(0, i, 0, 0, 0);
-                        Thread.Sleep(1);
-                        Random r = new Random();
-                        device.Morph(0, i, (byte)r.Next(32), (byte)r.Next(32), (byte)r.Next(32), 500);
-                        Thread.Sleep(1);
+                        await Task.Delay(1);
+                        //Random r = new Random();
+                        //device.Morph(0, i, (byte)r.Next(32), (byte)r.Next(32), (byte)r.Next(32), 500);
+                        //await Task.Delay(1);
                     }
                 }
             }
 
-        }
+            BlinkDevices = blinkDevices;
 
-        static async Task<string> GetRPCToken()
-        {
-            // NOTE: Not validated.
-
-            var postData = new Dictionary<string, string>()
-                {
-                    { "client_id", DiscordBlinkProgram.ClientId },
-                    { "client_secret", DiscordBlinkProgram.ClientKey },
-                };
-
-            using (var httpClient = new HttpClient())
+            while (!CancellableShellHelper.CancellationToken.WaitHandle.WaitOne(200))
             {
-                using (var content = new FormUrlEncodedContent(postData))
+                if (!LastIsMuted.HasValue)
                 {
-                    content.Headers.Clear();
-                    content.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
-
-                    HttpResponseMessage response = await httpClient.PostAsync("https://discord.com/api/oauth2/token/rpc", content);
-
-                    var responseJson = await response.Content.ReadAsStringAsync();
-                    var json = JsonSerializer.Deserialize<Dictionary<string, object>>(responseJson);
-                    var access_token = json["access_token"] as string;
-                    var ttl = json["expires_in"] as int?;
-
-                    //DiscordBlinkProgram.CurrentClientToken = access_token;
-                    //DiscordBlinkProgram.CurrentTokenTTL = ttl.HasValue ? (DateTime?)DateTime.Now.AddSeconds(ttl.Value - 5) : null;
+                    continue;
+                }
+                // Iterate through all of them
+                foreach (BlinkStick device in BlinkDevices)
+                {
+                    //Open the device
+                    if (device.OpenDevice())
+                    {
+                        if (LastIsMuted.Value && (!DoneSetLastIsMuted.HasValue || !DoneSetLastIsMuted.Value))
+                        {
+                            device.Morph(0, 1, 32, 0, 0, 100);
+                            DoneSetLastIsMuted = true;
+                        }
+                        else if (!LastIsMuted.Value && (!DoneSetLastIsMuted.HasValue || DoneSetLastIsMuted.Value))
+                        {
+                            device.Morph(0, 1, 0, 0, 32, 100);
+                            DoneSetLastIsMuted = false;
+                        }
+                        Task.Delay(1, CancellableShellHelper.CancellationToken).Wait();
+                        device.CloseDevice();
+                    }
                 }
             }
 
-            return null;
-        }
-
-        class DiscordRPCCommand
-        {
-            public string nonce { get; set; }
-            public Dictionary<string, object> args { get; set; }
-            public string cmd { get; set; }
-        }
-
-        static async Task GrabClient()
-        {
-            while (string.IsNullOrWhiteSpace(CurrentClientToken))
+            foreach (BlinkStick device in blinkDevices)
             {
-                await Task.Delay(500);
+                device.CloseDevice();
             }
+        }
 
-            /*
-                Create a Discord client
-                NOTE: 	If you are using Unity3D, you must use the full constructor and define
-                         the pipe connection.
-            */
+        static void ProcessDiscordVoiceStatus(object sender, DiscordRPC.Message.VoiceSettingsMessage args)
+        {
+            LastIsMuted = args.IsMuted;
+        }
+
+        static async Task DiscordSetup()
+        {
             var discordRpcClient = new DiscordRpcClient(ClientId);
 
             //Set the logger
@@ -198,153 +177,47 @@ namespace DiscordBlink
             //Connect to the RPC
             discordRpcClient.Initialize();
 
+            discordRpcClient.Authorize(DefaultScopes);
 
-            var nonce = Guid.NewGuid();
-
-            var authorizeCommand = new DiscordRPCCommand()
+            while (string.IsNullOrWhiteSpace(discordRpcClient.AccessCode))
             {
-                nonce = nonce.ToString(),
-                args = new Dictionary<string, object>()
-                    {
-                        { "client_id", ClientId },
-                        { "scopes", DefaultScopes },
-                    },
-                cmd = "AUTHORIZE",
-            };
-
-            var authenticateCommand = new DiscordRPCCommand()
-            {
-                nonce = nonce.ToString(),
-                args = new Dictionary<string, object>()
-                    {
-                        { "access_token", CurrentClientToken },
-                    },
-                cmd = "AUTHENTICATE",
-            };
-
-            //var rpcCLient = new DiscordRpcClient(ClientId, RedirectUrl);
-
-            //var token = await rpcCLient.AuthorizeAsync(defaultScopes);
-
-            //var user = rpcCLient.CurrentUser;
-
-            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "discord-ipc-0", PipeDirection.InOut))
-            {
-                // Connect to the pipe or wait until the pipe is available.
-                Console.Write("Attempting to connect to pipe...");
-                pipeClient.Connect();
-
-                Console.WriteLine("Connected to pipe.");
-                Console.WriteLine("There are currently {0} pipe server instances open.",
-                   pipeClient.NumberOfServerInstances);
-
-                var buffer = new byte[1048576];
-
-                void ReadCallBack(IAsyncResult result)
-                {
-                    var text = Encoding.UTF8.GetString(buffer);
-                    Console.WriteLine(text);
-                }
-                var readResult = pipeClient.BeginRead(buffer, 0, buffer.Length, ReadCallBack, buffer);
-
-                using (var writer = new StreamWriter(pipeClient))
-                {
-                    var authorizeCommandBuffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(authorizeCommand));
-                    writer.WriteLine(authorizeCommandBuffer);
-                    writer.Flush();
-                }
-                using (var writer = new StreamWriter(pipeClient))
-                {
-                    var authenticateCommandBuffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(authenticateCommand));
-                    writer.WriteLine(authenticateCommandBuffer);
-                    writer.Flush();
-                }
-
-                while (true)
-                {
-                    var waited = readResult.AsyncWaitHandle.WaitOne(500);
-                }
+                await Task.Delay(500, CancellableShellHelper.CancellationToken);
             }
 
+            discordRpcClient.Authenticate(null);
 
-
-            var port = 6463;
-            var version = 1;
-            var encoding = "json";
-
-            var websocketClient = new Discord.Net.WebSockets.DefaultWebSocketClient();
-            using (var client = new ClientWebSocket())
+            while (string.IsNullOrWhiteSpace(discordRpcClient.AccessToken))
             {
-                client.Options.SetRequestHeader("origin", RedirectUrl);
-                websocketClient.SetHeader("origin", RedirectUrl);
-
-                for (port = 6463; port <= 6472; port++)
-                {
-                    var url = $"ws://127.0.0.1:{port}/?v={version}&client_id={ClientId}&encoding={encoding}";
-                    try
-                    {
-                        await client.ConnectAsync(new Uri(url), CancellationToken.None);
-                        await websocketClient.ConnectAsync(url);
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-
-                    }
-                }
-
-                websocketClient.BinaryMessage += async (data, index, count) =>
-                {
-                    using (var compressed = new MemoryStream(data, index + 2, count - 2))
-                    using (var decompressed = new MemoryStream())
-                    {
-                        using (var zlib = new DeflateStream(compressed, CompressionMode.Decompress))
-                            zlib.CopyTo(decompressed);
-                        decompressed.Position = 0;
-                    }
-                };
-                websocketClient.TextMessage += async text =>
-                {
-                    Console.WriteLine(text);
-                };
-                websocketClient.Closed += async ex =>
-                {
-                };
-
-                var authCommandBuffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(authorizeCommand));
-
-                await websocketClient.SendAsync(authCommandBuffer, 0, authCommandBuffer.Length, true);
-                await client.SendAsync(authCommandBuffer, WebSocketMessageType.Text, true, CancellationToken.None);
-
-                var authCommandResponseBuffer = WebSocket.CreateClientBuffer(16384, 4096);
-                var authResponseResult = await client.ReceiveAsync(authCommandResponseBuffer, CancellationToken.None);
-                var authResponse = Encoding.UTF8.GetString(authCommandResponseBuffer);
+                await Task.Delay(500, CancellableShellHelper.CancellationToken);
             }
+
+            discordRpcClient.RegisterUriScheme();
+
+            discordRpcClient.GetVoiceSettings();
+
+            discordRpcClient.Subscribe(EventType.VoiceSettingsUpdate);
+
+            discordRpcClient.OnVoiceSettingsUpdate += ProcessDiscordVoiceStatus;
+
+            while (!CancellableShellHelper.CancellationToken.WaitHandle.WaitOne(0))
+            {
+                await Task.Delay(500, CancellableShellHelper.CancellationToken);
+            }
+
+            discordRpcClient.ClearPresence();
+
+            discordRpcClient.ShutdownOnly = true;
         }
 
-        public static void Main(string[] args)
+        public static async Task KickOffHosting(string[] args)
         {
             Console.WriteLine("Type in key:");
             var key = Console.ReadLine();
             ClientKey = AESHelper.DecryptStringFromBase64_Aes(ClientKeyEncrypted, key, null);
 
-            var cancelHelper = new CancellableShellHelper();
-            cancelHelper.SetupCancelHandler();
-            cancelHelper.WaitAfterCancel = WaitAfterCancel;
-
             var hostBuilder = CreateWebHostBuilder(args);
             IWebHost webHost = hostBuilder.Build();
-            var hostTask = webHost.RunAsync();
-
-            var blinkTask = Task.Run(() => Blink(args));
-
-            var rpcTask = GrabClient();
-
-            var runningTasks = new[] {
-                hostTask,
-                blinkTask,
-                rpcTask,
-            };
+            var task = webHost.RunAsync(CancellableShellHelper.CancellationToken);
 
             if (string.IsNullOrWhiteSpace(CurrentClientToken) || DateTime.Now > CurrentTokenTTL)
             {
@@ -354,7 +227,24 @@ namespace DiscordBlink
                 myProcess.Start();
             }
 
-            Task.WaitAll(runningTasks, cancelHelper.CancellationToken);
+            await task;
+        }
+
+        public static void Main(string[] args)
+        {
+            CancellableShellHelper.SetupCancelHandler();
+
+            var hostTask = KickOffHosting(args);
+            var blinkTask = BlinkSetup();
+            var rpcTask = DiscordSetup();
+
+            var runningTasks = new[] {
+                hostTask,
+                blinkTask,
+                rpcTask,
+            };
+
+            Task.WaitAll(runningTasks, CancellableShellHelper.CancellationToken);
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
