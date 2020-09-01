@@ -12,6 +12,9 @@ namespace BlinkStripControl
         }
 
 
+        public const byte Channel = 0;
+        public const byte NumberOfLights = 8;
+
         static void Main(string[] args)
         {
             var cancelHelper = new CancellableShellHelper();
@@ -39,14 +42,12 @@ namespace BlinkStripControl
                     device.SetMode(0);
                     Thread.Sleep(1);
 
-                    int numberOfLeds = 8;
-
-                    for (byte i = 0; i < numberOfLeds; i++)
+                    for (byte i = 0; i < NumberOfLights; i++)
                     {
                         device.SetColor(0, i, 0, 0, 0);
-                        Thread.Sleep(1);
+                        Thread.Sleep(100);
                         Random r = new Random();
-                        device.Morph(0, i, (byte)r.Next(32), (byte)r.Next(32), (byte)r.Next(32), 500);
+                        device.Morph(Channel, i, (byte)r.Next(32), (byte)r.Next(32), (byte)r.Next(32), 500, 30);
                         Thread.Sleep(1);
                     }
                 }

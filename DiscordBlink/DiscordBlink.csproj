@@ -12,10 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Discord\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\BlinkStickDotNet\BlinkStickDotNet.csproj" />
     <ProjectReference Include="..\Components\HidSharp\HidSharp.csproj" />
     <ProjectReference Include="..\Components\LibWinUsb\LibUsbDotNet.csproj" />

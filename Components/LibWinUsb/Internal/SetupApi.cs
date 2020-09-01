@@ -1,4 +1,4 @@
-// Copyright © 2006-2010 Travis Robinson. All rights reserved.
+// Copyright ?2006-2010 Travis Robinson. All rights reserved.
 // 
 // website: http://sourceforge.net/projects/libusbdotnet
 // e-mail:  libusbdotnet@gmail.com
@@ -183,7 +183,7 @@ namespace LibUsbDotNet.Internal
         private const string STRUCT_END_MARK = "STRUCT_END_MARK";
 
         public static readonly Guid GUID_DEVINTERFACE_USB_DEVICE = new Guid("f18a0e88-c30c-11d0-8815-00a0c906bed8");
-        
+
         public static bool Is64Bit
         {
             get { return (IntPtr.Size == 8); }
@@ -301,8 +301,8 @@ namespace LibUsbDotNet.Internal
                                                                      int deviceInterfaceDetailDataSize,
                                                                      out int requiredSize,
                                                                      ref SP_DEVINFO_DATA deviceInfoData);
-        
-        
+
+
         [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
         public static extern bool SetupDiGetDeviceInterfacePropertyKeys(IntPtr DeviceInfoSet,
                                                                         ref SP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
@@ -465,7 +465,7 @@ namespace LibUsbDotNet.Internal
             byte[] tmp;
             if (SetupDiGetDeviceRegistryProperty(out tmp, DeviceInfoSet, ref DeviceInfoData, Property))
             {
-                regSZ = Encoding.Unicode.GetString(tmp).TrimEnd(new char[] {'\0'});
+                regSZ = Encoding.Unicode.GetString(tmp).TrimEnd(new char[] { '\0' });
                 return true;
             }
             return false;
@@ -480,7 +480,7 @@ namespace LibUsbDotNet.Internal
             string tmp;
             if (SetupDiGetDeviceRegistryProperty(out tmp, DeviceInfoSet, ref DeviceInfoData, Property))
             {
-                regMultiSZ = tmp.Split(new char[] {'\0'}, StringSplitOptions.RemoveEmptyEntries);
+                regMultiSZ = tmp.Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
                 return true;
             }
             return false;
@@ -504,8 +504,8 @@ namespace LibUsbDotNet.Internal
                                                            out requiredSize);
             if (bSuccess)
             {
-                Guid devGuid = (Guid) devInterfaceGuid;
-                string[] stemp = Encoding.Unicode.GetString(propBuffer, 0, requiredSize).Split(new char[] {'\0'},
+                Guid devGuid = (Guid)devInterfaceGuid;
+                string[] stemp = Encoding.Unicode.GetString(propBuffer, 0, requiredSize).Split(new char[] { '\0' },
                                                                                                StringSplitOptions.RemoveEmptyEntries);
                 Guid findGuid = new Guid(stemp[0]);
                 return (devGuid == findGuid);
@@ -538,7 +538,7 @@ namespace LibUsbDotNet.Internal
             public DeviceInterfaceDetailHelper(int maximumLength)
             {
                 mpStructure = Marshal.AllocHGlobal(maximumLength);
-                mpDevicePath = new IntPtr(mpStructure.ToInt64() + Marshal.SizeOf(typeof (int)));
+                mpDevicePath = new IntPtr(mpStructure.ToInt64() + Marshal.SizeOf(typeof(int)));
             }
 
             public DEVICE_INTERFACE_DETAIL_HANDLE Handle
@@ -585,7 +585,7 @@ namespace LibUsbDotNet.Internal
         [StructLayout(LayoutKind.Sequential)]
         public struct SP_DEVICE_INTERFACE_DATA
         {
-            public static readonly SP_DEVICE_INTERFACE_DATA Empty = new SP_DEVICE_INTERFACE_DATA(Marshal.SizeOf(typeof (SP_DEVICE_INTERFACE_DATA)));
+            public static readonly SP_DEVICE_INTERFACE_DATA Empty = new SP_DEVICE_INTERFACE_DATA(Marshal.SizeOf(typeof(SP_DEVICE_INTERFACE_DATA)));
 
             public UInt32 cbSize;
             public Guid interfaceClassGuid;
@@ -594,7 +594,7 @@ namespace LibUsbDotNet.Internal
 
             private SP_DEVICE_INTERFACE_DATA(int size)
             {
-                cbSize = (uint) size;
+                cbSize = (uint)size;
                 reserved = UIntPtr.Zero;
                 flags = 0;
                 interfaceClassGuid = Guid.Empty;
@@ -627,7 +627,7 @@ namespace LibUsbDotNet.Internal
         [StructLayout(LayoutKind.Sequential)]
         public struct SP_DEVINFO_DATA
         {
-            public static readonly SP_DEVINFO_DATA Empty = new SP_DEVINFO_DATA(Marshal.SizeOf(typeof (SP_DEVINFO_DATA)));
+            public static readonly SP_DEVINFO_DATA Empty = new SP_DEVINFO_DATA(Marshal.SizeOf(typeof(SP_DEVINFO_DATA)));
 
             public UInt32 cbSize;
             public Guid ClassGuid;
@@ -636,7 +636,7 @@ namespace LibUsbDotNet.Internal
 
             private SP_DEVINFO_DATA(int size)
             {
-                cbSize = (uint) size;
+                cbSize = (uint)size;
                 ClassGuid = Guid.Empty;
                 DevInst = 0;
                 Reserved = IntPtr.Zero;

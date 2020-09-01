@@ -82,7 +82,7 @@ namespace DiscordBlink
 
         static async Task BlinkSetup()
         {
-            Console.WriteLine("Set random color.\r\n");
+            Console.WriteLine("Starting Blink Initialization\r\n");
 
             var blinkDevices = BlinkStick.FindAll();
 

@@ -1,4 +1,4 @@
-// Copyright © 2006-2010 Travis Robinson. All rights reserved.
+// Copyright ?2006-2010 Travis Robinson. All rights reserved.
 // 
 // website: http://sourceforge.net/projects/libusbdotnet
 // e-mail:  libusbdotnet@gmail.com
@@ -125,7 +125,7 @@ namespace LibUsbDotNet.DeviceNotify
                         case DeviceType.Port:
                         case DeviceType.Volume:
                         case DeviceType.DeviceInterface:
-                            args = new WindowsDeviceNotifyEventArgs(hdr, m.LParam, (EventType) m.WParam.ToInt32());
+                            args = new WindowsDeviceNotifyEventArgs(hdr, m.LParam, (EventType)m.WParam.ToInt32());
                             break;
                         default:
                             args = null;
