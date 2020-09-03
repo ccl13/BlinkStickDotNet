@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using BlinkStickDotNet;
 using DiscordBlink.Helper;
 using DiscordRPC;
@@ -13,6 +14,7 @@ namespace DiscordBlink
 {
     public class DiscordBlinkProgram
     {
+        public const string ClientKeyDecryptionKeyVariableName = "DISCORDBLINKPROGRAM_DECRYPTION_KEY";
         public const string TokenVariableName = "DISCORDBLINKPROGRAM_CURRENT_TOKEN";
         public const string TokenExpirationVariableName = "DISCORDBLINKPROGRAM_CURRENT_TOKEN_EXPIRATION";
         public const string TokenExpirationFormat = "yyyyMMddHHmmssffff";
@@ -22,6 +24,18 @@ namespace DiscordBlink
         public const string RedirectUrl = "http://localhost:62315/";
 
         public static string ClientKey = null;
+
+        public static string ClientKeyDecryptionKey
+        {
+            get
+            {
+                return System.Environment.GetEnvironmentVariable(ClientKeyDecryptionKeyVariableName, EnvironmentVariableTarget.User);
+            }
+            set
+            {
+                System.Environment.SetEnvironmentVariable(ClientKeyDecryptionKeyVariableName, value, EnvironmentVariableTarget.User);
+            }
+        }
 
         public static string CurrentClientToken
         {
@@ -212,13 +226,37 @@ namespace DiscordBlink
         {
             try
             {
-                var hostBuilder = CreateWebHostBuilder(args);
-                IWebHost webHost = hostBuilder.Build();
-                var task = webHost.RunAsync(CancellableShellHelper.CancellationToken);
+                var retryCounter = 0;
+                while (retryCounter < 3 && string.IsNullOrWhiteSpace(ClientKey))
+                {
+                    string key;
+                    if (string.IsNullOrWhiteSpace(ClientKeyDecryptionKey))
+                    {
+                        Console.WriteLine("Type in key:");
+                        key = Console.ReadLine();
+                    }
+                    else
+                    {
+                        key = ClientKeyDecryptionKey;
+                    }
+                    try
+                    {
+                        retryCounter++;
+                        ClientKey = AESHelper.DecryptStringFromBase64_Aes(ClientKeyEncrypted, key, null);
+                        ClientKeyDecryptionKey = key;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Probably wrong key: {ex}");
+                        ClientKeyDecryptionKey = null;
+                    }
+                }
 
-                Console.WriteLine("Type in key:");
-                var key = Console.ReadLine();
-                ClientKey = AESHelper.DecryptStringFromBase64_Aes(ClientKeyEncrypted, key, null);
+                if (string.IsNullOrWhiteSpace(ClientKey))
+                {
+                    Console.WriteLine("Cannot decrypt key. Not starting hosting.");
+                    return;
+                }
 
                 if (string.IsNullOrWhiteSpace(CurrentClientToken) || DateTime.Now > CurrentTokenTTL)
                 {
@@ -227,6 +265,11 @@ namespace DiscordBlink
                     myProcess.StartInfo.FileName = RedirectUrl;
                     myProcess.Start();
                 }
+
+                var hostBuilder = CreateWebHostBuilder(args);
+                IWebHost webHost = hostBuilder.Build();
+                var task = webHost.RunAsync(CancellableShellHelper.CancellationToken);
+
                 await task;
             }
             catch (Exception ex)
@@ -260,6 +303,16 @@ namespace DiscordBlink
 
         public static void Main(string[] args)
         {
+            bool successAquisition = false;
+            Mutex programMutex = new Mutex(
+                true,
+                $"{Application.ProductName}-Mutex-SingleInstance",
+                out successAquisition);
+            if (!successAquisition)
+            {
+                Console.WriteLine("Other instance already running. Exiting.");
+            }
+
             CancellableShellHelper.SetupCancelHandler();
             CancellableShellHelper.WaitAfterCancel = GracefulShutdown;
 
