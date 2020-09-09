@@ -53,11 +53,19 @@ namespace DiscordBlink.Controllers
 
                     var responseJson = await response.Content.ReadAsStringAsync();
                     var json = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(responseJson);
-                    var access_token = json["access_token"].GetString();
-                    var ttl = json["expires_in"].GetInt32();
+                    if (json.ContainsKey("error"))
+                    {
+                        var errorMessage = json["error"].GetString();
+                        return new UnauthorizedObjectResult(errorMessage);
+                    }
+                    else
+                    {
+                        var access_token = json["access_token"].GetString();
+                        var ttl = json["expires_in"].GetInt32();
 
-                    DiscordBlinkProgram.CurrentClientToken = access_token;
-                    DiscordBlinkProgram.CurrentTokenTTL = (DateTime?)DateTime.Now.AddSeconds(ttl - 5);
+                        DiscordBlinkProgram.CurrentClientToken = access_token;
+                        DiscordBlinkProgram.CurrentTokenTTL = (DateTime?)DateTime.Now.AddSeconds(ttl - 5);
+                    }
                 }
             }
 

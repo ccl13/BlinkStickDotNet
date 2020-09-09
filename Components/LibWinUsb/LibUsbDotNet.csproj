@@ -32,9 +32,6 @@
     <DocumentationFile>..\bin\Release\LibUsbDotNet.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Management" Version="4.7.0" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Remove="Internal\TransferContextBase.cs" />
     <Compile Remove="Main\ControlEpLockType.cs" />
     <Compile Remove="Main\DataEpLockType.cs" />

@@ -208,6 +208,13 @@ namespace DiscordBlink
 
             discordRpcClient.GetVoiceSettings();
 
+            var newPresence = new RichPresence()
+            {
+                State = "Accessing Named Pipes",
+            };
+
+            discordRpcClient.SetPresence(newPresence);
+
             discordRpcClient.Subscribe(EventType.VoiceSettingsUpdate);
 
             discordRpcClient.OnVoiceSettingsUpdate += ProcessDiscordVoiceStatus;
